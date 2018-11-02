@@ -1,0 +1,6 @@
+keras
+matplotlib
+nltk
+pydot
+scikit-learn
+tensorflow
