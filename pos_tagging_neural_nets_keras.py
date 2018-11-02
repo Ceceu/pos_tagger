@@ -2,24 +2,23 @@ from __future__ import print_function
 
 import random
 
-import matplotlib.pyplot as plt
 import nltk
-import numpy as np
-from keras.layers import Dense, Dropout, Activation
-from keras.models import Sequential
-from keras.utils import np_utils
-from keras.wrappers.scikit_learn import KerasClassifier
 from nltk.corpus import treebank
+import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import LabelEncoder
+from keras.layers import Dense, Dropout, Activation
+from keras.models import Sequential
+from keras.utils import np_utils, plot_model
+from keras.wrappers.scikit_learn import KerasClassifier
+import matplotlib.pyplot as plt
 
 CUSTOM_SEED = 42
 
 
 def add_basic_features(sentence_terms, index):
     """ Compute some very basic word features.
-
         :param sentence_terms: [w1, w2, ...]
         :type sentence_terms: list
         :param index: the index of the word
@@ -50,7 +49,6 @@ def add_basic_features(sentence_terms, index):
 def untag(tagged_sentence):
     """
     Remove the tag for each tagged term.
-
     :param tagged_sentence: a POS tagged sentence
     :type tagged_sentence: list
     :return: a list of tags
@@ -62,7 +60,6 @@ def untag(tagged_sentence):
 def transform_to_dataset(tagged_sentences):
     """
     Split tagged sentences to X and y datasets and append some basic features.
-
     :param tagged_sentences: a list of POS tagged sentences
     :param tagged_sentences: list of list of tuples (term_i, tag_i)
     :return:
@@ -130,9 +127,6 @@ def plot_model_performance(train_loss, train_acc, train_val_loss, train_val_acc)
 if __name__ == '__main__':
     # Ensure reproducibility
     np.random.seed(CUSTOM_SEED)
-
-    nltk.download('treebank')
-    nltk.download('universal_tagset')
 
     sentences = treebank.tagged_sents(tagset='universal')[:100]
     print('a random sentence: \n-> {}'.format(random.choice(sentences)))
@@ -206,26 +200,15 @@ if __name__ == '__main__':
         train_val_acc=hist.history.get('val_acc', [])
     )
 
-    # Evaluate model accuracy
-    score = clf.score(X_test, y_test, verbose=0)
-    print('model accuracy: {}'.format(score))
-
-    y_preds = clf.predict(X_test)
-    # Our target names are our label encoded targets
-    target_names = label_encoder.classes_
-
-    print("y_preds")
-    print(y_preds)
-
-    print("y_test")
-    print(y_test)
-
+    # Evaluate model accuracy by tag
+    y_preds = clf.predict(X_test) # compute the predict
+    target_names = label_encoder.classes_ # target names are the label encoded targets
     # Compute classification report
     classif_report = classification_report(y_true=y_test, y_pred=y_preds, target_names=target_names)
     print(classif_report)
 
     # Visualize model architecture
-    # plot_model(clf.model, to_file='data/model_structure.png', show_shapes=True)
+    plot_model(clf.model, to_file='data/model_structure.png', show_shapes=True)
 
     # Finally save model
     clf.model.save('data/keras_mlp.h5')
