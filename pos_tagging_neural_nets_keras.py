@@ -2,12 +2,13 @@ from __future__ import print_function
 
 import random
 
-import nltk
+
 from nltk.corpus import treebank
+from nltk.corpus import mac_morpho
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.metrics import classification_report
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report
 from keras.layers import Dense, Dropout, Activation
 from keras.models import Sequential
 from keras.utils import np_utils, plot_model
@@ -125,13 +126,15 @@ def plot_model_performance(train_loss, train_acc, train_val_loss, train_val_acc)
 
 
 if __name__ == '__main__':
+    nb_samples = 100
+
     # Ensure reproducibility
     np.random.seed(CUSTOM_SEED)
 
-    sentences = treebank.tagged_sents(tagset='universal')[:100]
+    sentences = mac_morpho.tagged_sents()[:nb_samples]
     print('a random sentence: \n-> {}'.format(random.choice(sentences)))
 
-    tags = set([tag for sentence in treebank.tagged_sents() for _, tag in sentence])
+    tags = set([tag for sentence in mac_morpho.tagged_sents() for _, tag in sentence])
     print('nb_tags: {}\ntags: {}'.format(len(tags), tags))
 
     # We use approximately 60% of the tagged sentences for training,
@@ -155,34 +158,34 @@ if __name__ == '__main__':
     dict_vectorizer.fit(X_train + X_test + X_val)
 
     # Convert dict features to vectors
-    X_train = dict_vectorizer.transform(X_train)
-    X_test = dict_vectorizer.transform(X_test)
-    X_val = dict_vectorizer.transform(X_val)
+    X_train_vect = dict_vectorizer.transform(X_train)
+    X_test_vect = dict_vectorizer.transform(X_test)
+    X_val_vect = dict_vectorizer.transform(X_val)
 
     # Fit LabelEncoder with our list of classes
     label_encoder = LabelEncoder()
     label_encoder.fit(y_train + y_test + y_val)
 
     # Encode class values as integers
-    y_train = label_encoder.transform(y_train)
-    y_test = label_encoder.transform(y_test)
-    y_val = label_encoder.transform(y_val)
+    y_train_enc = label_encoder.transform(y_train)
+    y_test_enc = label_encoder.transform(y_test)
+    y_val_enc = label_encoder.transform(y_val)
 
     # Convert integers to dummy variables (one hot encoded)
-    y_train = np_utils.to_categorical(y_train)
-    y_test = np_utils.to_categorical(y_test)
-    y_val = np_utils.to_categorical(y_val)
+    y_train_dummy = np_utils.to_categorical(y_train_enc)
+    y_test_dummy = np_utils.to_categorical(y_test_enc)
+    y_val_dummy = np_utils.to_categorical(y_val_enc)
 
     # Set model parameters
     model_params = {
         'build_fn': build_model,
-        'input_dim': X_train.shape[1],
+        'input_dim': X_train_vect.shape[1],
         'hidden_neurons': 512,
-        'output_dim': y_train.shape[1],
+        'output_dim': y_train_dummy.shape[1],
         'epochs': 5,
         'batch_size': 256,
         'verbose': 1,
-        'validation_data': (X_val, y_val),
+        'validation_data': (X_val_vect, y_val_dummy),
         'shuffle': True
     }
 
@@ -190,7 +193,7 @@ if __name__ == '__main__':
     clf = KerasClassifier(**model_params)
 
     # Finally, fit our classifier
-    hist = clf.fit(X_train, y_train)
+    hist = clf.fit(X_train_vect, y_train_dummy)
 
     # Plot model performance
     plot_model_performance(
@@ -200,11 +203,19 @@ if __name__ == '__main__':
         train_val_acc=hist.history.get('val_acc', [])
     )
 
-    # Evaluate model accuracy by tag
-    y_preds = clf.predict(X_test) # compute the predict
-    target_names = label_encoder.classes_ # target names are the label encoded targets
+    # Evaluate model accuracy
+    score = clf.score(X_test_vect, y_test_dummy, verbose=0)
+    print('model accuracy: {}'.format(score))
+
     # Compute classification report
-    classif_report = classification_report(y_true=y_test, y_pred=y_preds, target_names=target_names)
+    y_preds = clf.predict(X_test_vect)
+    # Our target names are our label encoded targets
+    target_names = label_encoder.classes_
+    # Compute classification report
+    classif_report = classification_report(
+        y_true=y_test_enc, y_pred=y_preds,
+        target_names=target_names
+    )
     print(classif_report)
 
     # Visualize model architecture
