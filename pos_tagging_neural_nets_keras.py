@@ -11,6 +11,7 @@ from keras.utils import np_utils
 from keras.wrappers.scikit_learn import KerasClassifier
 from nltk.corpus import treebank
 from sklearn.feature_extraction import DictVectorizer
+from sklearn.metrics import classification_report
 from sklearn.preprocessing import LabelEncoder
 
 CUSTOM_SEED = 42
@@ -213,9 +214,15 @@ if __name__ == '__main__':
     # Our target names are our label encoded targets
     target_names = label_encoder.classes_
 
+    print("y_preds")
+    print(y_preds)
+
+    print("y_test")
+    print(y_test)
+
     # Compute classification report
-    # classif_report = classification_report(y_true=y_test, y_pred=y_preds, target_names=target_names)
-    # print(classif_report)
+    classif_report = classification_report(y_true=y_test, y_pred=y_preds, target_names=target_names)
+    print(classif_report)
 
     # Visualize model architecture
     # plot_model(clf.model, to_file='data/model_structure.png', show_shapes=True)
